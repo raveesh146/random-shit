@@ -1,16 +1,6 @@
 import React, { useState } from "react";
-import { create } from "ipfs-http-client";
 
-const projectId = "2435897144b8412eb5ae71d42bce7b13";    // Your Infura Project ID
-const projectSecret = "mp24nHxgjakZnkrFi5qdCV3hdATPhX5ThSGbcpANQIVvLnakNEcH9A";  // Your Infura Secret
-const auth = 'Basic ' + btoa(projectId + ':' + projectSecret);
-
-const ipfs = create({
-  url: "https://ipfs.infura.io:5001/api/v0",
-  headers: {
-    authorization: auth
-  }
-});
+const JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI0MDcyYzBjZC1jYjMyLTQxMjYtODgzZi03ZGZmMjFiZDViZDAiLCJlbWFpbCI6ImFhcm9udmVybmVrYXJAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6ImE1ZGM1Y2EyYTg5MTY2Y2Q4NjZjIiwic2NvcGVkS2V5U2VjcmV0IjoiNjBhMTg4ZmRiYTFhMWNkZTQ1ZTNhZjNkODFjNGRiN2RiYWFhY2QyZTk3NWI3ZGEzMmYwNjYyZmNiNzkzMTRiMSIsImV4cCI6MTc2ODU2NTMzMX0.V-Y-fzyq9-3nHwneMXcBc2ZkN_ain73pCkre9rqhCjU";
 
 const UploadMetadata = ({ onMetadataUploaded }) => {
   const [metadata, setMetadata] = useState({
@@ -29,13 +19,60 @@ const UploadMetadata = ({ onMetadataUploaded }) => {
 
     setLoading(true);
     try {
-      const result = await ipfs.add(JSON.stringify(metadata));
-      const cid = result.path;
-      onMetadataUploaded(cid);
-      alert(`Metadata uploaded to IPFS: ipfs://${cid}`);
+      
+      const jsonString = JSON.stringify(metadata);
+      
+      
+      const blob = new Blob([jsonString], { type: "application/json" });
+      
+      
+      const file = new File([blob], "metadata.json", { type: "application/json" });
+      
+      
+      const formData = new FormData();
+      formData.append("file", file);
+
+      
+      const pinataMetadata = JSON.stringify({
+        name: `${metadata.name}-metadata`,
+        keyvalues: {
+          type: "nft-metadata",
+          date: new Date().toISOString()
+        }
+      });
+      formData.append('pinataMetadata', pinataMetadata);
+
+
+      const pinataOptions = JSON.stringify({
+        cidVersion: 1,
+        wrapWithDirectory: false
+      });
+      formData.append('pinataOptions', pinataOptions);
+
+      // Upload to Pinata
+      const response = await fetch(
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${JWT}`,
+          },
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        const ipfsCid = result.IpfsHash;
+        onMetadataUploaded(ipfsCid);
+        alert(`Metadata uploaded to IPFS: ipfs://${ipfsCid}`);
+      } else {
+        throw new Error(result.error?.details || 'Upload failed');
+      }
     } catch (error) {
-      console.error("Error uploading to IPFS:", error);
-      alert("Failed to upload to IPFS. Please check your credentials.");
+      console.error("Error uploading :", error);
+      alert("Failed to upload to IPFS. .");
     } finally {
       setLoading(false);
     }
