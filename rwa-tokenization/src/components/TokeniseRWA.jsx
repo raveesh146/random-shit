@@ -26,7 +26,7 @@ const TokenizeRWA = ({ signer }) => {
         placeholder="IPFS CID"
         onChange={(e) => setCid(e.target.value)}
       />
-      <button onClick={mintToken}>Mint Token</button>
+      <button onClick={mintToken}>Mint Token for RWA</button>
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 
 const ConnectWallet = ({ onWalletConnected }) => {
   const [walletAddress, setWalletAddress] = useState("");
-
+  
   const connectWallet = async () => {
     if (window.ethereum) {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
